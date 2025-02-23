@@ -35,6 +35,14 @@ donnees_annee = Table(
     Column("moyenne_pouvoir_achat", Float, nullable=False),
     Column("taux_chomage", Float, nullable=False),
     Column("type_de_position", Integer, ForeignKey("type_de_position.id"), nullable=False),
+    Column("nom_gagnant", String(100), nullable=False),
+    Column("prenom_gagnant", String(100), nullable=False),
+    Column("nom_perdant", String(100), nullable=False),
+    Column("prenom_perdant", String(100), nullable=False),
+    Column("pourcentage_vote_gagnant", Float, nullable=False),
+    Column("pourcentage_vote_perdant", Float, nullable=False),
+    Column("pourcentage_vote_blanc", Float, nullable=False),
+    Column("pourcentage_abstention", Float, nullable=False),
 )
 
 # Table "temperature_moyenne" (Table indépendente reliée à aucune autre car ce sont des données généralisées à l'échelle planétaire)
