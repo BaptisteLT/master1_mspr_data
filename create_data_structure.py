@@ -25,33 +25,34 @@ departement = Table(
     Column("nom", String(191), unique=True, nullable=False)
 )
 
-# Table "donnees_annee" (Liée à "departement")
-donnees_annee = Table(
-    "donnees_annee", metadata,
+# Table "elections" (Liée à "departement")
+elections = Table(
+    "elections", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("annee", Integer, nullable=False),
     Column("departement_id", Integer, ForeignKey("departement.id"), nullable=False),
     Column("moyenne_age", Float, nullable=False),
     Column("moyenne_pouvoir_achat", Float, nullable=False),
-    Column("taux_chomage", Float, nullable=False),
+    Column("taux_chomage", Float, nullable=True),
     Column("type_de_position", Integer, ForeignKey("type_de_position.id"), nullable=False),
     Column("nom_gagnant", String(100), nullable=False),
     Column("prenom_gagnant", String(100), nullable=False),
     Column("nom_perdant", String(100), nullable=False),
     Column("prenom_perdant", String(100), nullable=False),
     Column("pourcentage_vote_gagnant", Float, nullable=False),
-    Column("pourcentage_vote_perdant", Float, nullable=False),
+    #Column("pourcentage_vote_perdant", Float, nullable=False),
     Column("pourcentage_vote_blanc", Float, nullable=False),
     Column("pourcentage_abstention", Float, nullable=False),
+    Column("temperature_moyenne", Float, nullable=False)
 )
 
 # Table "temperature_moyenne" (Table indépendente reliée à aucune autre car ce sont des données généralisées à l'échelle planétaire)
-temperature_moyenne = Table(
-    "temperature_moyenne", metadata,
-    Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("annee", Integer, unique=True, nullable=False),
-    Column("temperature_moyenne", Float, nullable=False)
-)
+#temperature_moyenne = Table(
+#    "temperature_moyenne", metadata,
+#    Column("id", Integer, primary_key=True, autoincrement=True),
+#    Column("annee", Integer, unique=True, nullable=False),
+#    Column("temperature_moyenne", Float, nullable=False)
+#)
 
 # Table "type_de_position" (Les valeurs seront: Gauche, droite, milieu)
 type_de_position = Table(
