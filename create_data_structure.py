@@ -1,5 +1,5 @@
 import pandas as pd
-from sqlalchemy import create_engine, Table, Column, Integer, String, Float, ForeignKey, MetaData, text
+from sqlalchemy import create_engine, Table, Column, Integer, String, Float, ForeignKey, MetaData, text, insert
 
 # Installation des dépendances: pip install pandas sqlalchemy pymysql
 
@@ -60,6 +60,17 @@ type_de_position = Table(
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("libelle", String(10), unique=True, nullable=False)
 )
+
+# Insert values into "type_de_position" table
+with engine.connect() as conn:
+    # Prepare the insert statement
+    insert_stmt = insert(type_de_position).values([
+        {"libelle": "gauche"},
+        {"libelle": "milieu"},
+        {"libelle": "droite"}
+    ])
+    # Execute the statement
+    conn.execute(insert_stmt)
 
 metadata.create_all(engine)
 print("✅ Les tables ont été créées avec succès!")
