@@ -33,7 +33,7 @@ type_de_position = Table(
 # Dictionnaire de correspondance entre candidats et leur position politique
 position_map = {
     "emmanuel macron": "milieu",
-    "françois hollande": "milieu",
+    "françois hollande": "gauche",
     "nicolas sarkozy": "droite",
     "jacques chirac" : "droite"
 }
@@ -95,9 +95,9 @@ def truncate_tables(database_url, tables):
     print(f"Truncated tables: {', '.join(tables)}")
 
 def convert_to_csv(file_path):
-    """Convert Excel files to CSV format and save in ./data/votes/csvs."""
+    """Convertion des fichiers Excel en CSV, et les sauvegarder dans ./data/votes/csvs."""
     csv_folder = os.path.join(os.path.dirname(file_path), "csvs")
-    os.makedirs(csv_folder, exist_ok=True)  # Ensure folder exists
+    os.makedirs(csv_folder, exist_ok=True)  # Si le dossier n'existe pas, on le crée
 
     file_name = os.path.basename(file_path).replace(".xlsx", ".csv").replace(".xls", ".csv")
     csv_path = os.path.join(csv_folder, file_name)
@@ -108,13 +108,13 @@ def convert_to_csv(file_path):
         elif file_path.endswith(".xls"):
             xls = pd.ExcelFile(file_path, engine="xlrd")
         else:
-            print(f"⚠️ Not an Excel file: {file_path}")
+            print(f"⚠️ N'est pas dans un format Excel: {file_path}")
             return None
 
-        # Print all available sheet names for debugging
+        # Afficher les fiches disponibles (pour débugger)
         print(f"📄 Available sheets in {file_name}: {xls.sheet_names}")
 
-        # Updated sheet name check
+        # Nom de la fiche à récupérer
         sheet_name = None
         if "Résultats par niveau Dpt T2 Fra" in xls.sheet_names:
             sheet_name = "Résultats par niveau Dpt T2 Fra"
@@ -124,14 +124,16 @@ def convert_to_csv(file_path):
             sheet_name = "Départements T2"
 
         if not sheet_name:
-            print(f"❌ No matching sheet found in {file_name}.")
+            print(f"❌ La fiche n'a pas été trouvée dans {file_name}.")
             return None
 
-        # Read the correct sheet
-        df = pd.read_excel(xls, sheet_name=sheet_name, engine="openpyxl" if file_path.endswith(".xlsx") else "xlrd")
+        # Lecture de la bonne fiche
+        df = pd.read_excel(xls, sheet_name=sheet_name, 
+                           engine="openpyxl" if file_path.endswith(".xlsx") else "xlrd")
+        
         df.to_csv(csv_path, index=False, sep=';')
 
-        print(f"✅ Converted {file_name} to CSV: {csv_path}")
+        print(f"✅ Fichier  {file_name} converti en CSV: {csv_path}")
         return csv_path
 
     except Exception as e:
@@ -142,13 +144,13 @@ def convert_to_csv(file_path):
 
 
 def get_average_age(year):
-    # Load age data
-    age_file = "./data/donnees_croisees/age_population.csv"  # Adjust the path if needed
+    # Chargement des données de l'âge
+    age_file = "./data/donnees_croisees/age_population.csv"
     age_df = pd.read_csv(age_file, sep=",", dtype=str)  # Load CSV as strings
-    age_df["Année"] = age_df["Année"].astype(int)  # Convert "Année" to integer
-    age_df["Âge moyen Ensemble"] = age_df["Âge moyen Ensemble"].str.replace(",", ".").astype(float)  # Convert to float
+    age_df["Année"] = age_df["Année"].astype(int)  # Convertir "Année" en integer
+    age_df["Âge moyen Ensemble"] = age_df["Âge moyen Ensemble"].str.replace(",", ".").astype(float)
 
-    """Retrieve the average age for a given year."""
+    """Récupération de l'âge moyen pour une année donnée."""
     row = age_df[age_df["Année"] == year]
     if row.empty:
         raise ValueError(f"No age data found for year {year}. Stopping execution.")
@@ -156,39 +158,49 @@ def get_average_age(year):
     return row["Âge moyen Ensemble"].values[0]
 
 def get_average_temperature(year):
-    #print('year')
-    #print(year)
-    # Load age data
-    age_file = "./data/donnees_croisees/rechauffement_planete.csv"  # Adjust the path if needed
-    age_df = pd.read_csv(age_file, sep=",", dtype=str)  # Load CSV as strings
-    age_df["Year"] = age_df["Year"].astype(int)  # Convert "Year" to integer
+    # Charger les données de température
+    age_file = "./data/donnees_croisees/rechauffement_planete.csv"
+    # Lire le fichier CSV en traitant toutes les colonnes comme des chaînes de caractères
+    age_df = pd.read_csv(age_file, sep=",", dtype=str)
+    age_df["Year"] = age_df["Year"].astype(int) # Convertir la colonne "Year" en entier
+    # Nettoyer et convertir la colonne "J-D" (qui contient les températures moyennes annuelles)
     age_df["J-D"] = (
         age_df["J-D"]
-        .astype(str)  # Ensure it's treated as a string
-        .str.replace(",", ".")  # Replace commas with dots
-        .replace(r"[^\d\.\-]", "", regex=True)  # Remove invalid characters but keep negatives
-        .replace(r"^\.+$", "0", regex=True)  # Replace isolated dots with 0
-        .replace("", "0")  # Replace empty strings with "0"
+        .astype(str)  # S'assurer que les données sont bien des chaînes
+        .str.replace(",", ".")  # Remplacer les virgules par des points (standard français → anglais)
+        # Supprimer tous les caractères qui ne sont pas des chiffres (\d), un point (.), ou un tiret (-)
+        # Cela permet de nettoyer des symboles parasites ou autres lettres
+        .replace(r"[^\d\.\-]", "", regex=True) 
+        # Remplacer les chaînes composées uniquement de points (ex : ".", "..") par "0"
+        # Cela évite les erreurs lors de la conversion en float
+        .replace(r"^\.+$", "0", regex=True)
+        # Remplacer les chaînes vides par "0"
+        .replace("", "0") 
+        # Convertir la colonne nettoyée en float
         .astype(float)  # Convert to float
     )
 
-    """Retrieve the average age for a given year."""
+    """Récupération de la température moyenne pour une année donnée."""
     row = age_df[age_df["Year"] == year]
     if row.empty:
-        raise ValueError(f"No age data found for year {year}. Stopping execution.")
+        raise ValueError(f"No avg temperature data found for year {year}. Stopping execution.")
 
     return row["J-D"].values[0]
 
 
-#TODO: la fonction est optimisable car la même que get_average_age
-def get_moyenne_pouvoir_achat(year):
-    # Load age data
-    age_file = "./data/donnees_croisees/pouvoir_achat.csv"  # Adjust the path if needed
-    age_df = pd.read_csv(age_file, sep=",", dtype=str)  # Load CSV as strings
-    age_df["Année"] = age_df["Année"].astype(int)  # Convert "Année" to integer
-    age_df["Pouvoir d'achat arbitrable2 (par rapport à l'année précédente en %)"] = age_df["Pouvoir d'achat arbitrable2 (par rapport à l'année précédente en %)"].str.replace(",", ".").astype(float)  # Convert to float
 
-    """Retrieve the average age for a given year."""
+def get_moyenne_pouvoir_achat(year):
+     # Charger les données de pouvoir d'achat
+    age_file = "./data/donnees_croisees/pouvoir_achat.csv" 
+    age_df = pd.read_csv(age_file, sep=",", dtype=str) # Lire le CSV en tant que chaînes
+    age_df["Année"] = age_df["Année"].astype(int) # Convertir l'année en entier
+    age_df["Pouvoir d'achat arbitrable2 (par rapport à l'année précédente en %)"] = (
+        age_df["Pouvoir d'achat arbitrable2 (par rapport à l'année précédente en %)"]
+        .str.replace(",", ".")
+        .astype(float)
+    )  # Convertir en flottant
+    
+    """Récupérer la valeur pour l'année demandée."""
     row = age_df[age_df["Année"] == year]
     if row.empty:
         raise ValueError(f"No age data found for year {year} for moyenne_pouvoir_achat. Stopping execution.")
@@ -198,35 +210,38 @@ def get_moyenne_pouvoir_achat(year):
 
 
 
-# Charger les données
-chomage_file = "./data/donnees_croisees/chomage.csv"  # Ajuste le chemin si nécessaire
-chomage_df = pd.read_csv(chomage_file, sep=",", dtype=str)  # Charger le CSV en chaînes
-
-# Convertir en float uniquement si ce sont des chaînes
-def safe_replace(value):
-    if isinstance(value, str):
-        return float(value.replace(",", "."))
-    return value
-
-chomage_df.iloc[:, 2:] = chomage_df.iloc[:, 2:].map(safe_replace)
-
-# Transformer les données pour faciliter l'accès
-chomage_df = chomage_df.melt(id_vars=["Code", "Libellé"], var_name="Période", value_name="Chômage")
-# Remplacer tous les "-" par des espaces dans la colonne "Libellé"
-chomage_df["Libellé"] = chomage_df["Libellé"].str.replace("-", " ")
-chomage_df["Trimestre"] = chomage_df["Période"].apply(lambda x: x.split("_")[0])
-chomage_df["Année"] = chomage_df["Période"].apply(lambda x: int(x.split("_")[1]))
-chomage_df.drop(columns=["Période"], inplace=True)
 
 def remove_accents(text):
     return ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
 
 
 def get_unemployment_rate(departement, year):
-    """Retourne la moyenne annuelle du taux de chômage pour un département donné.
-    Si aucune donnée n'est trouvée pour l'année demandée, retourne la première année avec une valeur non nulle.
-    """
+    # Charger les données
+    chomage_file = "./data/donnees_croisees/chomage.csv"  # Ajuste le chemin si nécessaire
+    chomage_df = pd.read_csv(chomage_file, sep=",", dtype=str)  # Charger le CSV en chaînes
+
+    # Convertir en float uniquement si ce sont des chaînes
+    def safe_replace(value):
+        if isinstance(value, str):
+            return float(value.replace(",", "."))
+        return value
+
+    chomage_df.iloc[:, 2:] = chomage_df.iloc[:, 2:].map(safe_replace)
+    # Transformer les données pour faciliter l'accès
+    chomage_df = chomage_df.melt(id_vars=["Code", "Libellé"], var_name="Période", value_name="Chômage")
+    # Remplacer tous les "-" par des espaces dans la colonne "Libellé"
+    chomage_df["Libellé"] = chomage_df["Libellé"].str.replace("-", " ")
+    chomage_df["Trimestre"] = chomage_df["Période"].apply(lambda x: x.split("_")[0])
+    chomage_df["Année"] = chomage_df["Période"].apply(lambda x: int(x.split("_")[1]))
+    chomage_df.drop(columns=["Période"], inplace=True)
+
+    # Retourne la moyenne annuelle du taux de chômage pour un département donné.
+    # Si aucune donnée n'est trouvée pour l'année demandée, retourne la première année avec une valeur non nulle.
     departement = remove_accents(departement.replace("-", " "))
+
+  
+    # En base de données, nous avons "CORSE DU SUD", et dans le chomage.csv "CORSE SUD"
+    # Il faut donc faire la correction manuellement pour retrouver la correspondance
 
     corrections = {
         "CORSE SUD": "CORSE DU SUD", 
@@ -240,10 +255,10 @@ def get_unemployment_rate(departement, year):
     if not rows["Chômage"].dropna().empty:
         return rows["Chômage"].mean()
 
-    #TODO: préciser dans le doc final que l'on prend la première valeur de chômage trouvée pour la ligne correspondante si vide.
+    #On prend la première valeur de chômage trouvée pour la ligne correspondante si vide.
     # Si aucune donnée pour l'année demandée, chercher la première année avec une valeur
-    first_valid_year = chomage_df[(chomage_df["Libellé"] == departement) & chomage_df["Chômage"].notna()].groupby("Année").first().reset_index()
-
+    first_valid_year = chomage_df[(chomage_df["Libellé"] == departement) & 
+                                  chomage_df["Chômage"].notna()].groupby("Année").first().reset_index()
 
     if not first_valid_year.empty:
         return first_valid_year.iloc[0]["Chômage"]
@@ -353,12 +368,11 @@ def process_vote_files():
             # On trouve le header en utilisant la première colonne "Code du département", car certains fichiers ont le header en ligne 1 ou 4
             header_row_index = df_raw[df_raw.eq("Code du département").any(axis=1)].index[0]
 
-            # Read the file again using the correct header row
+            # Création d'un dataframe reprenant les bonnes lignes de colonnes
             df = pd.read_csv(file_path, sep=';', header=header_row_index, dtype=str)
+        
+        
 
-            # Show the first rows to verify
-            #print(df.head())
-           
             for _, row in df.iterrows():  # Parcours des lignes du fichier CSV
                 departement_nom = row.get("Libellé du département", "Unknown")
                 departement_code = row.get("Code du département", "Unknown")
@@ -370,13 +384,13 @@ def process_vote_files():
                 departement_nom = departement_nom.strip().upper()
                 departement_code = departement_code.strip().upper()
                                 
-                #print(departement_nom)
+                # On ignore certains départements qui ont des colonnes vides et des données insuffisantes
                 if departement_nom in departements_to_ignore:
                     # Process the department
                     print(f"Manually ignoring {departement_nom}")
                     continue  # Skip this iteration
 
-                # **Ignore rows where department fields are missing**
+                # On ignore les lignes où departement_nom ou departement_code est vide dans le fichier CSV
                 if pd.isna(departement_nom) or pd.isna(departement_code):
                     print(f"Ignoring row with missing department data: {row}")
                     continue
@@ -388,49 +402,62 @@ def process_vote_files():
                     )
                 ).fetchone()
 
-            
-                    
-
+                # Si le département n'existe pas, on le crée en BDD
                 if result is None:
                     conn.execute(departement.insert().values(code=departement_code, nom=departement_nom))
                     result = conn.execute(
                         departement.select().where(departement.c.code == departement_code)
                     ).fetchone()
 
-                #print(result)
-                departement_id = result[0]  # Récupérer l'ID
-                #print(departement_id)
 
-                #print("Column names:", df.columns.tolist())  # Print column names
-                # Extract winner details
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                departement_id = result[0]  # Récupérer l'ID du département en BDD
+
+                # Extraction du nom et prénom du gagnant des élections
                 nom_gagnant = row["Nom"]
                 prenom_gagnant = row["Prénom"]
 
-                #On récupère la première colonne "% Voix/Ins" trouvée car parfois il peut y en avoir deux qui ont le même nom "% Voix/Ins"
+                # On récupère la première colonne "% Voix/Ins" trouvée car parfois il peut y en avoir deux qui ont le même nom "% Voix/Ins"
                 first_col_index = row.index.get_loc("% Voix/Ins")  # Get first occurrence index
                 value = row.iloc[first_col_index]
+                # Récupération du pourcentage vote gagnant
                 pourcentage_vote_gagnant = float(value.replace(',', '.')) if isinstance(value, str) else float(value)
 
                 possible_columns = ["% BlNuls/Ins", "% Blancs/Ins"]
-                pourcentage_vote_blanc = None  # Default to None
+                pourcentage_vote_blanc = None
 
-                # Find the first available column with a defined value
+                # On va trouver la première colonne disponible de possible_columns. La colonne trouvée sera le pourcentage vote blanc
                 for col in possible_columns:
-                    if col in df.columns and pd.notna(row.get(col)):  # Check if column exists and value is not NaN
+                    if col in df.columns and pd.notna(row.get(col)):  # On verifie que la colonne existe et que sa valeur n'est pas NaN
                         pourcentage_vote_blanc = row[col]
                         break
 
-                # If no valid column was found, raise an error
+                # Si aucune colonne n'a été trouvée, on raise une erreur pour ajouter la bonne colonne par la suite dans possible_columns
                 if pourcentage_vote_blanc is None:
                     raise ValueError("No valid column found for vote blanc percentage")
 
+                # Récupération du pourcentage d'abstention
                 pourcentage_abstention = row["% Abs/Ins"];
 
-                #On récupère les 5 dernieres colonnes qui correspondent au perdant des élections
+                # On récupère les 5 dernieres colonnes qui correspondent au perdant des élections
                 loser_data = row.iloc[-5:].dropna().values  # Extract last 5 columns & drop NaN values
+                # Récupération du nom du perdant
                 nom_perdant = loser_data[0]
+                # Récupération du prénom du perdant
                 prenom_perdant = loser_data[1]
-                #pourcentage_vote_perdant = loser_data[3] #colonne "% Voix/Ins"
 
                 print(f"unemployment: {get_unemployment_rate(departement_nom, annee)} | annee: {annee} | departement: {departement_nom}")
 
@@ -480,18 +507,16 @@ def process_vote_files():
                     "type_de_position": get_position_type(nom_gagnant, prenom_gagnant)
                 })
 
-    # Extract the numerical features you want to standardize to prevent one value to be superior by another
+    # Données numériques à standardiser pour éviter qu'une valeur soit supérieure à une autre lors de l'entrainement du modèle
     numerical_columns = ['moyenne_age', 'moyenne_pouvoir_achat', 'taux_chomage', 'temperature_moyenne', 
                         'pourcentage_vote_gagnant', 'pourcentage_vote_blanc', 'pourcentage_abstention']
     
-    # Inutile avec Forest Classifier
+    # Inutile avec Forest Classifier, mais recommandé dans le cas où l'on voudrait utiliser différents algorithmes
     STANDARDIZED_DATA = standardize_data(DATA_TO_STANDARDIZE, numerical_columns)
 
-    # Insert rows in DB
+    # Insertion en BDD
     insert_rows_to_db(STANDARDIZED_DATA)
 
 
 if __name__ == "__main__":
     process_vote_files()
-
-#TODO il reste à implémenter les données croisées

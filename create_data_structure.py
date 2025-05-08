@@ -40,7 +40,6 @@ elections = Table(
     Column("nom_perdant", String(100), nullable=False),
     Column("prenom_perdant", String(100), nullable=False),
     Column("pourcentage_vote_gagnant", Float, nullable=False),
-    #Column("pourcentage_vote_perdant", Float, nullable=False),
     Column("pourcentage_vote_blanc", Float, nullable=False),
     Column("pourcentage_abstention", Float, nullable=False),
     Column("temperature_moyenne", Float, nullable=False)
