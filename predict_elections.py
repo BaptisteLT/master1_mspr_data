@@ -3,7 +3,7 @@ import joblib
 from sqlalchemy import create_engine
 from sklearn.metrics import accuracy_score, classification_report
 
-# Load trained model correctly
+# Chargement du modèle
 MODEL_PATH = "election_rf_model.pkl"
 model = joblib.load(MODEL_PATH)
 
@@ -11,7 +11,7 @@ model = joblib.load(MODEL_PATH)
 if not hasattr(model, "predict"):
     raise ValueError("Loaded model is not a valid scikit-learn model. Check your pickle file.")
 
-# Database connection
+# Connexion à la BDD
 DB_URL = "mysql+pymysql://root:@localhost:3306/elections"
 engine = create_engine(DB_URL)
 
@@ -32,7 +32,7 @@ df = pd.read_sql(query, engine)
 
 
 
-#Ou avec des données d'essai
+# Données d'essai
 data = {
     'moyenne_age': [30.5],  # One value for this feature
     'moyenne_pouvoir_achat': [-1.245526],  # One value for this feature
@@ -52,16 +52,17 @@ if df.empty:
     print("No data found")
     exit()
 
-# Features used in training
+# Features utilisées pendant l'entraînement
 features = ['moyenne_age', 'moyenne_pouvoir_achat', 'taux_chomage', 'temperature_moyenne', 'pourcentage_vote_gagnant', 'pourcentage_vote_blanc', 'pourcentage_abstention']
 # Prepare data
 X_new = df[features].apply(pd.to_numeric, errors='coerce').fillna(0)
 
-# Make prediction
+# On fait la prédiction
 prediction = model.predict(X_new)
 # Probabilités pour chaque classe
 probabilities = model.predict_proba(X_new)
 
+# On charge le label encoder qui contient le nom de nos classes
 label_encoder = joblib.load("./label_encoder.pkl")
 original_label = label_encoder.inverse_transform([prediction[0]])
 

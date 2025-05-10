@@ -30,13 +30,6 @@ type_de_position = Table(
     autoload_with=engine  # Charge automatiquement la structure de la table depuis la BDD
 )
 
-# Dictionnaire de correspondance entre candidats et leur position politique
-position_map = {
-    "emmanuel macron": "milieu",
-    "françois hollande": "gauche",
-    "nicolas sarkozy": "droite",
-    "jacques chirac" : "droite"
-}
 # Fonction pour récupérer l'ID de position basé sur le libellé depuis la base de données
 def get_position_id(libelle):
     
@@ -59,6 +52,13 @@ def get_position_id(libelle):
 # Fonction pour récupérer l'ID de la position basée sur le nom et prénom
 def get_position_type(nom_gagnant, prenom_gagnant):
    
+    position_map = {
+        "emmanuel macron": "milieu",
+        "françois hollande": "gauche",
+        "nicolas sarkozy": "droite",
+        "jacques chirac" : "droite"
+    }
+
     full_name = f"{prenom_gagnant} {nom_gagnant}".lower()
     # Vérifie si le candidat existe dans le dictionnaire
     position = position_map.get(full_name)
@@ -70,7 +70,8 @@ def get_position_type(nom_gagnant, prenom_gagnant):
         if position_id:
             return int(position_id)  # Retourne l'ID de la position
         else:
-            raise ValueError(f"{position_id} not found in database")  # Raising error if ID not found
+            # Raise error si l'id n'a pas été trouvé en BDD
+            raise ValueError(f"{position_id} not found in database")  
     else:
         raise ValueError(f"Candidat '{full_name}' non trouvé dans le dictionnaire")
     
@@ -252,8 +253,7 @@ def get_unemployment_rate(departement, year):
     # Filtrer pour l'année demandée
     rows = chomage_df[(chomage_df["Libellé"] == departement) & (chomage_df["Année"] == year)]
     
-    if not rows["Chômage"].dropna().empty:
-        return rows["Chômage"].mean()
+    if not rows["Chômage"].dropna().empty: return rows["Chômage"].mean()
 
     #On prend la première valeur de chômage trouvée pour la ligne correspondante si vide.
     # Si aucune donnée pour l'année demandée, chercher la première année avec une valeur
@@ -262,7 +262,6 @@ def get_unemployment_rate(departement, year):
 
     if not first_valid_year.empty:
         return first_valid_year.iloc[0]["Chômage"]
-
     raise ValueError(f"Aucune donnée trouvée pour {departement}.")
 
 
@@ -304,7 +303,7 @@ def standardize_data(DATA_TO_STANDARDIZE, numerical_columns):
 
 def insert_rows_to_db(DATA_TO_STANDARDIZE):
     for row in DATA_TO_STANDARDIZE:
-        # Extracting the necessary values for insertion
+        # Extraction des données nécessaires pour l'insertion en BDD
         annee = row['annee']
         departement_id = row['departement_id']
         moyenne_age = row['moyenne_age']
@@ -320,7 +319,7 @@ def insert_rows_to_db(DATA_TO_STANDARDIZE):
         pourcentage_vote_blanc = row['pourcentage_vote_blanc']
         pourcentage_abstention = row['pourcentage_abstention']
 
-        # Insert into database
+        # Insertion en BDD
         conn.execute(elections.insert().values(
             annee=annee,
             departement_id=departement_id,
